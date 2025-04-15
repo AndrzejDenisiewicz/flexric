@@ -17,6 +17,7 @@
 #include "../../gtp_sm/ie/gtp_data_ie.h"
 #include "../../rc_sm/ie/rc_data_ie.h"
 #include "../../kpm_sm/kpm_data_ie_wrapper.h"
+#include "../../srs_sm/ie/srs_data_ie.h"
 
 #include "../write/subscribe_timer.h"
 
@@ -35,6 +36,7 @@ typedef enum{
   KPM_STATS_V3_0, 
   RAN_CTRL_STATS_V1_03,
   SM_AGENT_IF_READ_V0_END,
+  SRS_STATS_V0,
 } sm_ag_if_rd_ind_e;
 
 typedef struct{
@@ -63,6 +65,7 @@ typedef struct{
     gtp_ind_data_t gtp;
     kpm_rd_ind_data_t kpm;
     rc_rd_ind_data_t rc;
+    srs_ind_data_t srs;
   };
 } sm_ag_if_rd_ind_t;
 
@@ -84,6 +87,7 @@ typedef enum{
   KPM_V3_0_AGENT_IF_E2_SETUP_ANS_V0,
   RAN_CTRL_V1_3_AGENT_IF_E2_SETUP_ANS_V0,
   SM_AGENT_IF_E2_SETUP_ANS_V0_END,
+  SRS_AGENT_IF_E2_SETUP_ANS_V0,
 } sm_ag_if_rd_e2setup_e;
 
 typedef struct{
