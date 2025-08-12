@@ -207,7 +207,7 @@ void* emulate_rrc_msg(void* ptr)
     assert(d != NULL && "Memory exhausted");
     *d = fill_rnd_rc_ind_data();
     async_event_agent_api(sta_ric_id, d);
-    printf("Event for RIC Req ID %u generated\n", sta_ric_id);
+    //printf("Event for RIC Req ID %u generated\n", sta_ric_id);
   }
 
   return NULL;
@@ -244,7 +244,7 @@ void* emulate_srs_fapi_msg(void* ptr)
     d->hdr = fill_rnd_srs_ind_hdr();
     d->msg = fill_rnd_srs_ind_msg();
     async_event_agent_api(srs_ric_id, d);
-    printf("Event for RIC Req ID %u generated\n", srs_ric_id);
+    //printf("Event for RIC Req ID %u generated\n", srs_ric_id);
   }
 
   return NULL;
@@ -320,8 +320,7 @@ void sm_cb_gtp(sm_ag_if_rd_t const* rd)
   ++cnt_gtp;
 }
 
-// static 
-// int cnt_srs = 0;
+static int cnt_srs = 0;
 static
 void sm_cb_srs(sm_ag_if_rd_t const* rd)
 {
@@ -329,11 +328,9 @@ void sm_cb_srs(sm_ag_if_rd_t const* rd)
   assert(rd->type == INDICATION_MSG_AGENT_IF_ANS_V0);
   assert(rd->ind.type == SRS_STATS_V0); 
 
-  //if(cnt_srs % 128 == 0){
   int64_t now = time_now_us();
   printf("SRS ind_msg latency = %ld μs\n", now - rd->ind.srs.msg.tstamp);
-  //}
-  //++cnt_srs;
+  ++cnt_srs;
 }
 
 static
@@ -484,7 +481,7 @@ int main(int argc, char *argv[])
   e2_node_connected_xapp_t* n = &nodes.n[0];
   for(size_t i = 0; i < n->len_rf; ++i)
     printf("Registered ran func id = %d \n ", n->rf[i].id );
-
+/*
   const char* period = "5_ms";
   // returns a handle
   sm_ans_xapp_t h_1 = report_sm_xapp_api(&nodes.n[0].id, 142, (void*)period, sm_cb_mac);
@@ -542,7 +539,7 @@ int main(int argc, char *argv[])
 
   sm_ans_xapp_t h_5 = report_sm_xapp_api(&nodes.n[0].id, SM_RC_ID, &rc_sub, sm_cb_rc);
   assert(h_5.success);
-
+*/
   // // // SRS Subscription
   srs_sub_data_t srs_sub = {0};
   defer({ free_srs_sub_data(&srs_sub); });
@@ -558,13 +555,13 @@ int main(int argc, char *argv[])
   assert(h_6.success == true);
 
   sleep(3);
-  rm_report_sm_xapp_api(h_1.u.handle);
-  rm_report_sm_xapp_api(h_2.u.handle);
-  rm_report_sm_xapp_api(h_3.u.handle);
-  rm_report_sm_xapp_api(h_4.u.handle);
+  //rm_report_sm_xapp_api(h_1.u.handle);
+  //rm_report_sm_xapp_api(h_2.u.handle);
+  //rm_report_sm_xapp_api(h_3.u.handle);
+  //rm_report_sm_xapp_api(h_4.u.handle);
   // // FIX BUG HERE maybe see the free subscription ids/ some sort of order
   rm_report_sm_xapp_api(h_6.u.handle);
-  rm_report_sm_xapp_api(h_5.u.handle);
+  //rm_report_sm_xapp_api(h_5.u.handle);
   
 
   sleep(1);
@@ -579,8 +576,8 @@ int main(int argc, char *argv[])
   // Stop the RIC
    stop_near_ric_api();
 
-  int const rc = pthread_join(t, NULL);
-  assert(rc == 0);
+  //int const rc = pthread_join(t, NULL);
+  //assert(rc == 0);
 
   int const srs = pthread_join(t_srs_subs_ctrl,NULL);
   assert(srs == 0);
