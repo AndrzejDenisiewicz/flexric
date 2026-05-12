@@ -7,8 +7,8 @@
 #include "../../util/byte_array.h"
 #include "../../util/time_now_us.h"
 
-#include "enc/ccc_enc_plain.h"
-#include "dec/ccc_dec_plain.h"
+#include "enc/ccc_enc_json.h"
+#include "dec/ccc_dec_json.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -22,7 +22,7 @@
 
 typedef struct {
   sm_agent_t base;
-  ccc_enc_plain_t enc;
+  ccc_enc_json_t enc;
 } sm_ccc_agent_t;
 
 static
@@ -88,48 +88,65 @@ exp_ind_data_t on_indication_ccc_sm_ag(sm_agent_t const* sm_agent, void* act_def
       return (exp_ind_data_t){.has_value = false};
     }
   } else {
-    // Generate default CCC indication data based on JSON schema
-    // For now, we'll create a simple JSON payload
-    
-    const char* sample_config_json = 
+    /*
+     * Default indication: Format 1 node-level configuration report.
+     * Key names follow E2SmCccIndicationMessageFormat1Properties from
+     * e2sm_ccc.hpp (camelCase):
+     *   "listOfConfigurationStructuresReported"
+     *   "ranConfigurationStructureName"
+     *   "valuesOfAttributes"
+     */
+    const char* default_ind_msg =
       "{"
-      "\"indication_format\": 1,"
-      "\"list_of_configuration_structures_reported\": ["
-        "{"
-          "\"ran_configuration_structure_name\": \"O_RU_Info\","
-          "\"values_of_attributes\": {"
-            "\"energy_saving_capability_common_info\": {"
-              "\"st8_ready_message_supported\": true,"
-              "\"sleep_duration_extension_supported\": true,"
-              "\"emergency_wake_up_command_supported\": false"
+        "\"listOfConfigurationStructuresReported\":["
+          "{"
+            "\"ranConfigurationStructureName\":\"O-RUInfo\","
+            "\"valuesOfAttributes\":{"
+              "\"energySavingCapabilityCommonInfo\":{"
+                "\"st8ReadyMessageSupported\":true,"
+                "\"sleepDurationExtensionSupported\":false,"
+                "\"emergencyWakeUpCommandSupported\":true"
+              "}"
             "}"
           "}"
-        "}"
-      "]}";
-    
-    size_t json_len = strlen(sample_config_json);
-    ccc.ind.msg.json_payload = calloc(json_len + 1, sizeof(char));
-    assert(ccc.ind.msg.json_payload != NULL && "Memory exhausted");
-    memcpy(ccc.ind.msg.json_payload, sample_config_json, json_len);
-    ccc.ind.msg.payload_len = json_len;
-    
-    // Set indication header
-    ccc.ind.hdr.timestamp = time_now_us();
+        "]"
+      "}";
+
+    size_t json_len = strlen(default_ind_msg);
+    ccc.ind.msg.format = FORMAT_1_E2SM_CCC_IND_MSG;
+    ccc.ind.msg.format1.list_of_configuration_structures_reported.data =
+        calloc(json_len + 1, sizeof(char));
+    assert(ccc.ind.msg.format1.list_of_configuration_structures_reported.data != NULL
+           && "Memory exhausted");
+    memcpy(ccc.ind.msg.format1.list_of_configuration_structures_reported.data,
+           default_ind_msg, json_len);
+    ccc.ind.msg.format1.list_of_configuration_structures_reported.len = json_len;
+
+    /* Indication header – Format 1 per E2SmCccIndicationHeaderFormat1Properties */
+    ccc.ind.hdr.format = FORMAT_1_E2SM_CCC_IND_HDR;
+    ccc.ind.hdr.format1.event_time        = (uint64_t)time_now_us();
+    ccc.ind.hdr.format1.indication_reason = NULL;
   }
 
-  // Free memory allocated by RAN at read_ind
-  defer({ 
-    if (ccc.ind.msg.json_payload != NULL) {
+  /* Free whichever payload buffer is set */
+  defer({
+    if (ccc.ind.msg.format == FORMAT_1_E2SM_CCC_IND_MSG) {
+      if (ccc.ind.msg.format1.list_of_configuration_structures_reported.data)
+        free(ccc.ind.msg.format1.list_of_configuration_structures_reported.data);
+    } else if (ccc.ind.msg.format == FORMAT_2_E2SM_CCC_IND_MSG) {
+      if (ccc.ind.msg.format2.list_of_cells_reported.data)
+        free(ccc.ind.msg.format2.list_of_cells_reported.data);
+    } else if (ccc.ind.msg.json_payload != NULL) {
       free(ccc.ind.msg.json_payload);
     }
   });
 
   // Encode indication header and message using plain encoder
-  byte_array_t ba_hdr = ccc_enc_ind_hdr_plain(&ccc.ind.hdr);
+  byte_array_t ba_hdr = ccc_enc_ind_hdr_json(&ccc.ind.hdr);
   ret.data.ind_hdr = ba_hdr.buf;
   ret.data.len_hdr = ba_hdr.len;
 
-  byte_array_t ba_msg = ccc_enc_ind_msg_plain(&ccc.ind.msg);
+  byte_array_t ba_msg = ccc_enc_ind_msg_json(&ccc.ind.msg);
   ret.data.ind_msg = ba_msg.buf;
   ret.data.len_msg = ba_msg.len;
 
@@ -151,13 +168,31 @@ sm_ctrl_out_data_t on_control_ccc_sm_ag(sm_agent_t const* sm_agent, sm_ctrl_req_
   sm_ctrl_out_data_t out = {0};
   
   // Decode control header and message using plain decoder
-  ccc_ctrl_hdr_t ctrl_hdr = ccc_dec_ctrl_hdr_plain(data->len_hdr, data->ctrl_hdr);
-  ccc_ctrl_msg_t ctrl_msg = ccc_dec_ctrl_msg_plain(data->len_msg, data->ctrl_msg);
+  ccc_ctrl_hdr_t ctrl_hdr = ccc_dec_ctrl_hdr_json(data->len_hdr, data->ctrl_hdr);
+  ccc_ctrl_msg_t ctrl_msg = ccc_dec_ctrl_msg_json(data->len_msg, data->ctrl_msg);
   
-  printf("[CCC SM Agent]: Control header received (type: %d)\n", ctrl_hdr.control_type);
-  
-  if (ctrl_msg.payload_len > 0 && ctrl_msg.json_payload != NULL) {
-    printf("[CCC SM Agent]: Control message received: %.*s\n", (int)ctrl_msg.payload_len, ctrl_msg.json_payload);
+  printf("[CCC SM Agent]: Control header received (ricStyleType: %d)\n",
+         (ctrl_hdr.format == FORMAT_1_E2SM_CCC_CTRL_HDR)
+             ? (int)ctrl_hdr.format1.ric_style_type
+             : (int)ctrl_hdr.control_type);
+
+  /* Determine the payload string whichever format was decoded */
+  const char* ctrl_payload = NULL;
+  size_t      ctrl_payload_len = 0;
+  if (ctrl_msg.format == FORMAT_1_E2SM_CCC_CTRL_MSG) {
+    ctrl_payload     = ctrl_msg.format1.list_of_configuration_structures.data;
+    ctrl_payload_len = ctrl_msg.format1.list_of_configuration_structures.len;
+  } else if (ctrl_msg.format == FORMAT_2_E2SM_CCC_CTRL_MSG) {
+    ctrl_payload     = ctrl_msg.format2.list_of_cells_controlled.data;
+    ctrl_payload_len = ctrl_msg.format2.list_of_cells_controlled.len;
+  } else if (ctrl_msg.json_payload != NULL) {
+    ctrl_payload     = ctrl_msg.json_payload;
+    ctrl_payload_len = ctrl_msg.payload_len;
+  }
+
+  if (ctrl_payload != NULL && ctrl_payload_len > 0) {
+    printf("[CCC SM Agent]: Control message received: %.*s\n",
+           (int)ctrl_payload_len, ctrl_payload);
     
     // Execute control action through I/O interface if available
     if (sm->base.io.write_ctrl != NULL) {
@@ -168,75 +203,74 @@ sm_ctrl_out_data_t on_control_ccc_sm_ag(sm_agent_t const* sm_agent, sm_ctrl_req_
       // Call the control function
       sm_ag_if_ans_t ans = sm->base.io.write_ctrl(&req);
       
-      // Generate control outcome based on result
-      if (ans.type == CTRL_OUTCOME_SM_AG_IF_ANS_V0 && ans.ctrl_out.type == CCC_AGENT_IF_CTRL_ANS_V0 && ans.ctrl_out.ccc.outcome == 0) {
-        // Success - Generate E2SmCccControlOutcomeFormat1
-        const char* outcome_json = 
+      /*
+       * Outcome keys per E2SmCccControlOutcomeFormat1Properties (camelCase):
+       *   "receivedTimestamp", "ranConfigurationStructuresAcceptedList",
+       *   "ranConfigurationStructuresFailedList"
+       */
+      if (ans.type == CTRL_OUTCOME_SM_AG_IF_ANS_V0
+          && ans.ctrl_out.type == CCC_AGENT_IF_CTRL_ANS_V0
+          && ans.ctrl_out.ccc.outcome == 0) {
+        /* Success */
+        const char* outcome_fmt =
           "{"
-          "\"received_timestamp\": %ld,"
-          "\"ran_configuration_structures_accepted_list\": ["
-            "{"
-              "\"ran_configuration_structure_name\": \"O_RU_Info\","
-              "\"applied_timestamp\": %ld"
-            "}"
-          "],"
-          "\"ran_configuration_structures_failed_list\": []"
+            "\"receivedTimestamp\":%ld,"
+            "\"ranConfigurationStructuresAcceptedList\":["
+              "{\"ranConfigurationStructureName\":\"O-RUInfo\","
+               "\"appliedTimestamp\":%ld}"
+            "],"
+            "\"ranConfigurationStructuresFailedList\":[]"
           "}";
-        
         char* formatted_outcome = calloc(512, sizeof(char));
         assert(formatted_outcome != NULL && "Memory exhausted");
-        long timestamp = time_now_us();
-        sprintf(formatted_outcome, outcome_json, timestamp, timestamp);
-        
-        out.len_out = strlen(formatted_outcome);
+        long ts = time_now_us();
+        sprintf(formatted_outcome, outcome_fmt, ts, ts);
+        out.len_out  = strlen(formatted_outcome);
         out.ctrl_out = (uint8_t*)formatted_outcome;
       } else {
-        // Failure case
-        const char* failure_json = 
+        /* Failure */
+        const char* failure_fmt =
           "{"
-          "\"received_timestamp\": %ld,"
-          "\"ran_configuration_structures_accepted_list\": [],"
-          "\"ran_configuration_structures_failed_list\": ["
-            "{"
-              "\"ran_configuration_structure_name\": \"Unknown\","
-              "\"cause\": \"Configuration failed\""
-            "}"
-          "]"
+            "\"receivedTimestamp\":%ld,"
+            "\"ranConfigurationStructuresAcceptedList\":[],"
+            "\"ranConfigurationStructuresFailedList\":["
+              "{\"ranConfigurationStructureName\":\"Unknown\","
+               "\"cause\":\"Configuration failed\"}"
+            "]"
           "}";
-        
         char* formatted_failure = calloc(512, sizeof(char));
         assert(formatted_failure != NULL && "Memory exhausted");
-        sprintf(formatted_failure, failure_json, time_now_us());
-        
-        out.len_out = strlen(formatted_failure);
+        sprintf(formatted_failure, failure_fmt, time_now_us());
+        out.len_out  = strlen(formatted_failure);
         out.ctrl_out = (uint8_t*)formatted_failure;
       }
     } else {
-      // Default success response when no I/O interface
-      const char* default_outcome = 
-        "{"
-        "\"received_timestamp\": %ld,"
-        "\"result\": \"success\""
-        "}";
-      
+      /* No I/O interface – default success */
+      const char* default_fmt =
+        "{\"receivedTimestamp\":%ld,\"ranConfigurationStructuresAcceptedList\":[],"
+         "\"ranConfigurationStructuresFailedList\":[]}";
       char* formatted_default = calloc(256, sizeof(char));
       assert(formatted_default != NULL && "Memory exhausted");
-      sprintf(formatted_default, default_outcome, time_now_us());
-      
-      out.len_out = strlen(formatted_default);
+      sprintf(formatted_default, default_fmt, time_now_us());
+      out.len_out  = strlen(formatted_default);
       out.ctrl_out = (uint8_t*)formatted_default;
     }
   } else {
-    // No control message - generate minimal response
-    const char* minimal_outcome = "{\"result\":\"no_action\"}";
-    out.len_out = strlen(minimal_outcome);
+    /* No control payload */
+    const char* minimal = "{\"ranConfigurationStructuresAcceptedList\":[],"
+                           "\"ranConfigurationStructuresFailedList\":[]}";
+    out.len_out  = strlen(minimal);
     out.ctrl_out = calloc(out.len_out + 1, sizeof(uint8_t));
     assert(out.ctrl_out != NULL && "Memory exhausted");
-    memcpy(out.ctrl_out, minimal_outcome, out.len_out);
+    memcpy(out.ctrl_out, minimal, out.len_out);
   }
-  
-  // Cleanup decoded data
-  if (ctrl_msg.json_payload != NULL) {
+
+  /* Cleanup decoded data */
+  if (ctrl_msg.format == FORMAT_1_E2SM_CCC_CTRL_MSG) {
+    free(ctrl_msg.format1.list_of_configuration_structures.data);
+  } else if (ctrl_msg.format == FORMAT_2_E2SM_CCC_CTRL_MSG) {
+    free(ctrl_msg.format2.list_of_cells_controlled.data);
+  } else if (ctrl_msg.json_payload != NULL) {
     free(ctrl_msg.json_payload);
   }
   
@@ -421,7 +455,7 @@ sm_agent_t* make_ccc_sm_agent(sm_io_ag_ran_t io)
   assert(sm != NULL && "Memory exhausted");
 
   // Set I/O functions from RAN - convert from sm_io_ag_ran_t to sm_io_ag_sm_t
-  sm->base.io.read_ind = io.read_ind_tbl[CCC_STATS_V0];
+  sm->base.io.read_ind = io.read_ind_tbl[CCC_STATS_V6];
   sm->base.io.read_setup = io.read_setup_tbl[CCC_AGENT_IF_E2_SETUP_ANS_V0];
   
   // Write functions

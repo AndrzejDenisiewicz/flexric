@@ -28,9 +28,10 @@ extern "C" {
 //
 //   2. RAN Configuration Structure with String Name:
 //      ccc_ran_configuration_structure_t config = {0};
-//      config.ran_configuration_structure_name = strdup(CCC_RAN_STRUCT_NAME_O_RU_INFO);
+//      // node-level:
+//      config.ran_configuration_structure_name = strdup(CCC_RAN_STRUCT_NAME_O_GNB_DU_FUNCTION);
 //      // or cell-level:
-//      config.ran_configuration_structure_name = strdup(CCC_RAN_STRUCT_NAME_O_NR_CELL_DU);
+//      config.ran_configuration_structure_name = strdup(CCC_RAN_STRUCT_NAME_O_NES_POLICY);
 //
 //   3. Custom/Vendor-specific Structure:
 //      config.ran_configuration_structure_name = strdup("MyVendor-CustomConfig");
@@ -69,22 +70,26 @@ typedef enum {
   END_CCC_QUERY_SERVICE_STYLE_TYPE
 } ccc_query_service_style_type_e;
 
-// RAN Configuration Structure Names (Section 8.2)
-// These are strings in the spec, extensible and vendor-specific
-// 
-// Common Standard Structure Names:
-#define CCC_RAN_STRUCT_NAME_O_RU_INFO                  "O-RU-Info"
-#define CCC_RAN_STRUCT_NAME_O_DU_INFO                  "O-DU-Info"
-#define CCC_RAN_STRUCT_NAME_O_CU_CP_INFO               "O-CU-CP-Info"
-#define CCC_RAN_STRUCT_NAME_O_CU_UP_INFO               "O-CU-UP-Info"
-#define CCC_RAN_STRUCT_NAME_CELL_INFO                  "Cell-Info"
-#define CCC_RAN_STRUCT_NAME_BWP_CONFIG                 "BWP-Config"
-#define CCC_RAN_STRUCT_NAME_CELL_DTXDRX_CONFIG         "Cell-DTX-DRX-Config"
-#define CCC_RAN_STRUCT_NAME_CES_MANAGEMENT_FUNCTION    "CES-Management-Function"
-// Cell-level structures (examples from spec)
-#define CCC_RAN_STRUCT_NAME_O_NES_POLICY               "O-NESPolicy"
+// RAN Configuration Structure Names (E2SM-CCC / e2sm_ccc.hpp)
+//
+// Node-level:
+//   O-GNBDUFunction, O-GNBCUCPFunction, O-GNBCUUPFunction, O-RRMPolicyRatio
+// Cell-level:
+//   O-RUInfo, O-BWP, O-NRCellDU, O-NRCellCU, O-CESManagementFunction,
+//   O-NESPolicy, O-CellDTXDRXConfig, O-RRMPolicyRatio, O-PRBBlankingPolicy
+//
+#define CCC_RAN_STRUCT_NAME_O_GNB_DU_FUNCTION          "O-GNBDUFunction"
+#define CCC_RAN_STRUCT_NAME_O_GNB_CU_CP_FUNCTION       "O-GNBCUCPFunction"
+#define CCC_RAN_STRUCT_NAME_O_GNB_CU_UP_FUNCTION       "O-GNBCUUPFunction"
+#define CCC_RAN_STRUCT_NAME_O_RRM_POLICY_RATIO         "O-RRMPolicyRatio"
+#define CCC_RAN_STRUCT_NAME_O_RU_INFO                  "O-RUInfo"
+#define CCC_RAN_STRUCT_NAME_O_BWP                      "O-BWP"
 #define CCC_RAN_STRUCT_NAME_O_NR_CELL_DU               "O-NRCellDU"
 #define CCC_RAN_STRUCT_NAME_O_NR_CELL_CU               "O-NRCellCU"
+#define CCC_RAN_STRUCT_NAME_O_CES_MANAGEMENT_FUNCTION  "O-CESManagementFunction"
+#define CCC_RAN_STRUCT_NAME_O_NES_POLICY               "O-NESPolicy"
+#define CCC_RAN_STRUCT_NAME_O_CELL_DTXDRX_CONFIG       "O-CellDTXDRXConfig"
+#define CCC_RAN_STRUCT_NAME_O_PRB_BLANKING_POLICY      "O-PRBBlankingPolicy"
 
 //////////////////////////////////////
 // RIC Event Trigger Definition
@@ -178,17 +183,22 @@ typedef struct {
 // RAN Configuration Structures
 /////////////////////////////////////
 
-// RAN Configuration Structure Name (common names from spec)
+// RAN Configuration Structure Name (node-level + cell-level per e2sm_ccc.hpp)
 typedef enum {
-  CCC_RAN_CONFIG_O_RU_INFO = 0,
-  CCC_RAN_CONFIG_O_DU_INFO = 1,
-  CCC_RAN_CONFIG_O_CU_CP_INFO = 2,
-  CCC_RAN_CONFIG_O_CU_UP_INFO = 3,
-  CCC_RAN_CONFIG_O_CELL_INFO = 4,
-  CCC_RAN_CONFIG_O_BWP_INFO = 5,
-  CCC_RAN_CONFIG_O_NES_POLICY = 6,
-  CCC_RAN_CONFIG_O_CES_MGMT_FUNCTION = 7,
-  CCC_RAN_CONFIG_O_CELL_DTXDRX_CONFIG = 8,
+  /* Node-level */
+  CCC_RAN_CONFIG_O_GNB_DU_FUNCTION = 0,
+  CCC_RAN_CONFIG_O_GNB_CU_CP_FUNCTION = 1,
+  CCC_RAN_CONFIG_O_GNB_CU_UP_FUNCTION = 2,
+  CCC_RAN_CONFIG_O_RRM_POLICY_RATIO = 3,
+  /* Cell-level */
+  CCC_RAN_CONFIG_O_RU_INFO = 4,
+  CCC_RAN_CONFIG_O_BWP = 5,
+  CCC_RAN_CONFIG_O_NR_CELL_DU = 6,
+  CCC_RAN_CONFIG_O_NR_CELL_CU = 7,
+  CCC_RAN_CONFIG_O_CES_MGMT_FUNCTION = 8,
+  CCC_RAN_CONFIG_O_NES_POLICY = 9,
+  CCC_RAN_CONFIG_O_CELL_DTXDRX_CONFIG = 10,
+  CCC_RAN_CONFIG_O_PRB_BLANKING_POLICY = 11,
   CCC_RAN_CONFIG_CUSTOM = 999
 } ccc_ran_config_name_e;
 

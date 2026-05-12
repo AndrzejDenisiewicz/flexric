@@ -8,8 +8,8 @@
 #include "../../util/alg_ds/alg/defer.h"
 #include "../../util/byte_array.h"
 
-#include "enc/ccc_enc_plain.h"
-#include "dec/ccc_dec_plain.h"
+#include "enc/ccc_enc_json.h"
+#include "dec/ccc_dec_json.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -18,7 +18,7 @@
 
 typedef struct {
   sm_ric_t base;
-  ccc_enc_plain_t enc;
+  ccc_enc_json_t enc;
 } sm_ccc_ric_t;
 
 static
@@ -75,10 +75,10 @@ sm_ag_if_rd_ind_t on_indication_ccc_sm_ric(sm_ric_t const* sm_ric, sm_ind_data_t
   (void)sm_ric;  // Unused - CCC uses plain encoding only
 
   sm_ag_if_rd_ind_t dst = {0};
-  dst.type = CCC_STATS_V0;
+  dst.type = CCC_STATS_V6;
 
-  dst.ccc.hdr = ccc_dec_ind_hdr_plain(data->len_hdr, data->ind_hdr);
-  dst.ccc.msg = ccc_dec_ind_msg_plain(data->len_msg, data->ind_msg);
+  dst.ccc.hdr = ccc_dec_ind_hdr_json(data->len_hdr, data->ind_hdr);
+  dst.ccc.msg = ccc_dec_ind_msg_json(data->len_msg, data->ind_msg);
 
   return dst;
 }
@@ -94,11 +94,11 @@ sm_ctrl_req_data_t ric_on_control_req_ccc_sm_ric(sm_ric_t const* sm_ric, void* c
 
   sm_ctrl_req_data_t dst = {0};
 
-  byte_array_t ba_hdr = ccc_enc_ctrl_hdr_plain(&req->hdr);
+  byte_array_t ba_hdr = ccc_enc_ctrl_hdr_json(&req->hdr);
   dst.ctrl_hdr = ba_hdr.buf;
   dst.len_hdr = ba_hdr.len;
 
-  byte_array_t ba_msg = ccc_enc_ctrl_msg_plain(&req->msg);
+  byte_array_t ba_msg = ccc_enc_ctrl_msg_json(&req->msg);
   dst.ctrl_msg = ba_msg.buf;
   dst.len_msg = ba_msg.len;
 
@@ -168,7 +168,22 @@ static
 void free_ind_data_ccc_sm_ric(void* msg)
 {
   assert(msg != NULL);
-  assert(0!=0 && "Not implemented");
+  sm_ag_if_rd_ind_t* rd_ind = (sm_ag_if_rd_ind_t*)msg;
+  assert(rd_ind->type == CCC_STATS_V6);
+  ccc_ind_data_t* ind = &rd_ind->ccc;
+  /* Free indication header Format 1 */
+  if (ind->hdr.format == FORMAT_1_E2SM_CCC_IND_HDR) {
+    if (ind->hdr.format1.indication_reason)
+      free(ind->hdr.format1.indication_reason);
+  }
+  /* Free indication message — whichever format was decoded */
+  if (ind->msg.format == FORMAT_1_E2SM_CCC_IND_MSG) {
+    free(ind->msg.format1.list_of_configuration_structures_reported.data);
+  } else if (ind->msg.format == FORMAT_2_E2SM_CCC_IND_MSG) {
+    free(ind->msg.format2.list_of_cells_reported.data);
+  } else if (ind->msg.json_payload != NULL) {
+    free(ind->msg.json_payload);
+  }
 }
 
 static

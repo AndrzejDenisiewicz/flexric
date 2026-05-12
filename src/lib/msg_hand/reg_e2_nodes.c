@@ -482,8 +482,12 @@ void rm_reg_e2_node(reg_e2_nodes_t* n, global_e2_node_id_t const* id)
 {
   assert(n != NULL);
   assert(id != NULL);
-
-  printf("[NEAR-RIC]: Removing E2 Node MCC %d MNC %d NB_ID %u \n", id->plmn.mcc, id->plmn.mnc, id->nb_id.nb_id);
+  // The '0' flag in %03d and %0*d enables zero-padding.
+  // This ensures leading zeros are printed for the MCC and MNC.
+  // For example, MCC = 010 is printed as "010" instead of "10".
+  // If the '0' is removed (e.g., %3d or %*d), the values are space-padded
+  // and leading zeros are not displayed. 
+  printf("[NEAR-RIC]: Removing E2 Node MCC %03d MNC %0*d NB_ID %u \n", id->plmn.mcc, id->plmn.mnc_digit_len, id->plmn.mnc, id->nb_id.nb_id);
 
   {
     lock_guard(&n->mtx);
