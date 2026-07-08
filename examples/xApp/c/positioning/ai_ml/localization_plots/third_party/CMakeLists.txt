@@ -27,6 +27,7 @@ target_include_directories(ImGui PUBLIC "${imgui_SOURCE_DIR}" "${imgui_SOURCE_DI
 ###############################################################################
 FetchContent_Declare(ImPlot
     GIT_REPOSITORY https://github.com/epezent/implot
+    GIT_TAG v0.17
     GIT_PROGRESS TRUE)
 FetchContent_MakeAvailable(ImPlot)
 
