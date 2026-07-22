@@ -16,6 +16,33 @@ target_link_libraries(xapp_es_with_cell_util
     dl
 )
 
+add_executable(xapp_rf_reconfiguration
+    rf_reconfiguration_xapp.c
+    ../../../../src/util/alg_ds/alg/defer.c
+)
+
+# Link necessary libraries
+target_link_libraries(xapp_rf_reconfiguration
+    PUBLIC
+    e42_xapp
+    pthread
+    sctp
+    dl
+)
+
+add_executable(xapp_test_ccc 
+            test_ccc.c
+                )
+
+ target_link_libraries(xapp_test_ccc 
+ 						PUBLIC
+ 						e42_xapp
+                        ccc_sm_static  
+ 						-pthread
+ 						-lsctp
+ 						-ldl
+ 						)
+ 						
 add_executable(xapp_kpm_rc_Enhanced 
   xapp_kpm_rc_Enhanced.c
   ../../../../src/util/alg_ds/alg/defer.c

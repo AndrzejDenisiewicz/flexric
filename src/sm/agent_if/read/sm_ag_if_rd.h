@@ -33,7 +33,7 @@ typedef enum{
   SLICE_STATS_V0,
   TC_STATS_V0,
   GTP_STATS_V0, 
-  CCC_STATS_V0,
+  CCC_STATS_V6,
   KPM_STATS_V3_0, 
   RAN_CTRL_STATS_V1_03,
   SM_AGENT_IF_READ_V0_END,
@@ -55,7 +55,7 @@ typedef struct{
 typedef struct{
   ccc_ind_data_t ind;
   // Non-owning pointer
-  void const* act_def;
+  ccc_action_def_t const* act_def;
 } ccc_rd_ind_data_t;
 
 // ToDo: Change it for pointers, to break the dependencies

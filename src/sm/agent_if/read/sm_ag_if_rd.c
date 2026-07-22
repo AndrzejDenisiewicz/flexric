@@ -31,7 +31,7 @@ void free_sm_ag_if_rd_ind(sm_ag_if_rd_ind_t* d)
     free_tc_ind_data(&d->tc);
   } else if(d->type == GTP_STATS_V0){
     free_gtp_ind_data(&d->gtp);
-  } else if(d->type == CCC_STATS_V0){
+  } else if(d->type == CCC_STATS_V6){  
     free_ccc_ind_data(&d->ccc);
   } else if(d->type == KPM_STATS_V3_0){
     free_kpm_ind_data(&d->kpm.ind);
@@ -61,7 +61,7 @@ sm_ag_if_rd_ind_t cp_sm_ag_if_rd_ind(sm_ag_if_rd_ind_t const* d)
     ans.tc = cp_tc_ind_data(&d->tc);
   } else if(ans.type == GTP_STATS_V0) {
     ans.gtp = cp_gtp_ind_data(&d->gtp);
-  } else if(ans.type == CCC_STATS_V0) {
+  } else if(ans.type == CCC_STATS_V6) {
     ans.ccc = cp_ccc_ind_data(&d->ccc);
   } else if(ans.type == KPM_STATS_V3_0) {
     ans.kpm.ind = cp_kpm_ind_data(&d->kpm.ind);

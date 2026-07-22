@@ -33,25 +33,27 @@ set(SM_ENCODING_CCC_SRC
     ../../util/alg_ds/ds/assoc_container/assoc_rb_tree.c
     ../../util/alg_ds/ds/assoc_container/bimap.c
     ie/ccc_data_ie.c
-    dec/ccc_dec_plain.c
-    enc/ccc_enc_plain.c
+    dec/ccc_dec_json.c
+    enc/ccc_enc_json.c
     ccc_sm_ric.c 
     ccc_sm_agent.c 
     ccc_sm.cc  
 )
 
-if(SM_ENCODING_CCC STREQUAL "PLAIN")
-  # For now, just use basic source files
-  set(SM_ENCODING_CCC_SRC_PLAIN ${SM_ENCODING_CCC_SRC})
+if(SM_ENCODING_CCC STREQUAL "JSON")
+  set(SM_ENCODING_CCC_SRC_JSON ${SM_ENCODING_CCC_SRC})
 
   # Shared
-  add_library(ccc_sm SHARED ${SM_ENCODING_CCC_SRC_PLAIN} )
+  add_library(ccc_sm SHARED ${SM_ENCODING_CCC_SRC_JSON} )
   target_compile_options(ccc_sm PRIVATE -fPIC -fvisibility=hidden)
   target_link_libraries(ccc_sm PRIVATE stdc++ nlohmann_json::nlohmann_json)
 
   # Static
-  add_library(ccc_sm_static STATIC ${SM_ENCODING_CCC_SRC_PLAIN})
+  add_library(ccc_sm_static STATIC ${SM_ENCODING_CCC_SRC_JSON})
   target_link_libraries(ccc_sm_static PRIVATE stdc++ nlohmann_json::nlohmann_json)
+
+elseif(SM_ENCODING_CCC STREQUAL "PLAIN")
+  message(FATAL_ERROR "CCC SM PLAIN encoding is no longer supported; use JSON")
 
 elseif(SM_ENCODING_CCC STREQUAL "ASN")
   message(FATAL_ERROR "CCC SM ASN not implemented")
