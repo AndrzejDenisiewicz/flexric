@@ -17,7 +17,7 @@ void free_ran_function_name(ran_function_name_t* src)
 
   free_byte_array(src->description);
 
-  if (src->instance != NULL)   //TODO handel instance = 0 
+  if (src->instance != NULL)
     free(src->instance);
 }
 

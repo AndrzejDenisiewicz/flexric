@@ -46,9 +46,10 @@ bool read_ind_ccc(void* read)
   ccc->ind.hdr.format1.indication_reason = NULL;
 
   /* Indication message – Format 1 with camelCase JSON payload */
+  /* Cell-level example structure name from e2sm_ccc.hpp */
   static const char ind_payload[] =
     "{\"listOfConfigurationStructuresReported\":["
-      "{\"ranConfigurationStructureName\":\"O-RU-Info\","
+      "{\"ranConfigurationStructureName\":\"O-RUInfo\","
        "\"valuesOfAttributes\":{"
          "\"energySavingCapabilityCommonInfo\":{"
            "\"st8ReadyMessageSupported\":true,"
@@ -180,13 +181,13 @@ void check_indication(sm_agent_t* ag, sm_ric_t* ric)
 static
 void check_ctrl_f1(sm_agent_t* ag, sm_ric_t* ric)
 {
+  /* Format 1 = node-level → use a node-level structure name */
   static const char f1_payload[] =
     "{\"listOfConfigurationStructures\":["
-      "{\"ranConfigurationStructureName\":\"O-RU-Info\","
+      "{\"ranConfigurationStructureName\":\"O-GNBDUFunction\","
        "\"valuesOfAttributes\":{"
-         "\"energySavingCapabilityCommonInfo\":{"
-           "\"st8ReadyMessageSupported\":true"
-         "}"
+         "\"gNBDUId\":1,"
+         "\"gNBDUName\":\"gNB-DU-1\""
        "}"
       "}"
     "]}";

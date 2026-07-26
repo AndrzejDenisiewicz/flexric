@@ -1,16 +1,21 @@
 /*
  * Comprehensive CCC Service Model Test xApp
  *
- * Tests all CCC SM capabilities:
+ * RAN Configuration Structure names (per e2sm_ccc.hpp / E2SM-CCC):
+ *   Node-level: O-GNBDUFunction, O-GNBCUCPFunction, O-GNBCUUPFunction, O-RRMPolicyRatio
+ *   Cell-level: O-RUInfo, O-BWP, O-NRCellDU, O-NRCellCU, O-CESManagementFunction,
+ *               O-NESPolicy, O-CellDTXDRXConfig, O-RRMPolicyRatio, O-PRBBlankingPolicy
+ *
+ * Tests:
  *   TC-1  Subscription  - Event Trigger Format 1 (Node-level, periodic)
  *   TC-2  Subscription  - Event Trigger Format 2 (Cell-level, periodic)
  *   TC-3  Subscription  - Event Trigger Format 3 (Periodic reporting)
  *   TC-4  Indication    - Verify indication header & message are received
- *   TC-5  Control       - Style Type 1 (Node-level): O-RU-Info energy saving
- *   TC-6  Control       - Style Type 1 (Node-level): CES-Management-Function
- *   TC-7  Control       - Style Type 2 (Cell-level): O-NESPolicy antenna mask
- *   TC-8  Control       - Style Type 2 (Cell-level): BWP-Config
- *   TC-9  Control       - Style Type 2 (Cell-level): Cell-DTX-DRX-Config
+ *   TC-5  Control       - Style Type 1 (Node-level): O-GNBDUFunction
+ *   TC-6  Control       - Style Type 1 (Node-level): O-RRMPolicyRatio
+ *   TC-7  Control       - Style Type 2 (Cell-level): O-NESPolicy
+ *   TC-8  Control       - Style Type 2 (Cell-level): O-BWP
+ *   TC-9  Control       - Style Type 2 (Cell-level): O-CellDTXDRXConfig
  *   TC-10 Unsubscribe   - Remove all subscriptions cleanly
  */
 
@@ -77,15 +82,18 @@ void sm_cb_ccc(sm_ag_if_rd_t const* rd)
 static
 char* make_json(const char* structure_name, const char* attributes_json)
 {
-  /* Returns heap-allocated JSON string — caller must free() */
+  /* Returns heap-allocated JSON string — caller must free().
+   * Keys follow e2sm_ccc.hpp camelCase:
+   *   listOfConfigurationStructures, ranConfigurationStructureName,
+   *   valuesOfAttributes
+   */
   char buf[2048];
   int n = snprintf(buf, sizeof(buf),
     "{"
-      "\"control_format\":1,"
-      "\"list_of_configuration_structures\":["
+      "\"listOfConfigurationStructures\":["
         "{"
-          "\"ran_configuration_structure_name\":\"%s\","
-          "\"values_of_attributes\":%s"
+          "\"ranConfigurationStructureName\":\"%s\","
+          "\"valuesOfAttributes\":%s"
         "}"
       "]"
     "}",
@@ -242,19 +250,16 @@ int main(int argc, char* argv[])
     FAIL("TC-4: no CCC indications received");
 
   // ===========================================================================
-  // TC-5: Control – Style 1 / Node-level: O-RU-Info Energy Saving Capability
+  // TC-5: Control – Style 1 / Node-level: O-GNBDUFunction
   // ===========================================================================
   SEP();
-  INFO("TC-5: Control – Style 1 Node-level: O-RU-Info energy saving capability");
+  INFO("TC-5: Control – Style 1 Node-level: O-GNBDUFunction");
   for (size_t i = 0; i < nodes.len; i++) {
     char* json = make_json(
-      CCC_RAN_STRUCT_NAME_O_RU_INFO,
+      CCC_RAN_STRUCT_NAME_O_GNB_DU_FUNCTION,
       "{"
-        "\"energy_saving_capability_common_info\":{"
-          "\"st8_ready_message_supported\":true,"
-          "\"sleep_duration_extension_supported\":false,"
-          "\"emergency_wake_up_command_supported\":true"
-        "}"
+        "\"gNBDUId\":1,"
+        "\"gNBDUName\":\"gNB-DU-1\""
       "}"
     );
 
@@ -264,30 +269,31 @@ int main(int argc, char* argv[])
     control_sm_xapp_api(&nodes.n[i].id, SM_CCC_ID, &ctrl);
     free(ctrl.msg.json_payload);
 
-    PASS("TC-5 node %zu: O-RU-Info control sent", i);
+    PASS("TC-5 node %zu: O-GNBDUFunction control sent", i);
   }
   sleep(1);
 
   // ===========================================================================
-  // TC-6: Control – Style 1 / Node-level: CES Management Function
+  // TC-6: Control – Style 1 / Node-level: O-RRMPolicyRatio
   // ===========================================================================
   SEP();
-  INFO("TC-6: Control – Style 1 Node-level: CES-Management-Function");
+  INFO("TC-6: Control – Style 1 Node-level: O-RRMPolicyRatio");
   for (size_t i = 0; i < nodes.len; i++) {
     char* json = make_json(
-      CCC_RAN_STRUCT_NAME_CES_MANAGEMENT_FUNCTION,
+      CCC_RAN_STRUCT_NAME_O_RRM_POLICY_RATIO,
       "{"
-        "\"ces_switch\":1,"
-        "\"energy_saving_state\":1,"
-        "\"energy_saving_control\":1"
+        "\"resourceType\":\"PRB\","
+        "\"rRMPolicyMaxRatio\":80,"
+        "\"rRMPolicyMinRatio\":20,"
+        "\"rRMPolicyDedicatedRatio\":40"
       "}"
     );
 
     bool ok = send_ccc_ctrl(&nodes.n[i], CCC_CTRL_SERVICE_STYLE_TYPE_1, json);
     free(json);
 
-    if (ok) PASS("TC-6 node %zu: CES-Management-Function control sent", i);
-    else    FAIL("TC-6 node %zu: CES-Management-Function control FAILED", i);
+    if (ok) PASS("TC-6 node %zu: O-RRMPolicyRatio control sent", i);
+    else    FAIL("TC-6 node %zu: O-RRMPolicyRatio control FAILED", i);
   }
   sleep(1);
 
@@ -295,73 +301,74 @@ int main(int argc, char* argv[])
   // TC-7: Control – Style 2 / Cell-level: O-NESPolicy antenna mask "1100"
   // ===========================================================================
   SEP();
-  INFO("TC-7: Control – Style 2 Cell-level: O-NESPolicy antenna_mask=\"1100\"");
+  INFO("TC-7: Control – Style 2 Cell-level: O-NESPolicy antennaMask=\"1100\"");
   for (size_t i = 0; i < nodes.len; i++) {
     char* json = make_json(
       CCC_RAN_STRUCT_NAME_O_NES_POLICY,
       "{"
-        "\"antenna_mask\":\"1100\","
-        "\"old_antenna_mask\":\"1111\""
+        "\"antennaMask\":\"1100\","
+        "\"oldValuesOfAttributes\":{\"antennaMask\":\"1111\"},"
+        "\"newValuesOfAttributes\":{\"antennaMask\":\"1100\"}"
       "}"
     );
 
     bool ok = send_ccc_ctrl(&nodes.n[i], CCC_CTRL_SERVICE_STYLE_TYPE_2, json);
     free(json);
 
-    if (ok) PASS("TC-7 node %zu: O-NESPolicy antenna_mask=1100 sent", i);
+    if (ok) PASS("TC-7 node %zu: O-NESPolicy antennaMask=1100 sent", i);
     else    FAIL("TC-7 node %zu: O-NESPolicy control FAILED", i);
   }
   sleep(1);
 
   // ===========================================================================
-  // TC-8: Control – Style 2 / Cell-level: BWP-Config
+  // TC-8: Control – Style 2 / Cell-level: O-BWP
   // ===========================================================================
   SEP();
-  INFO("TC-8: Control – Style 2 Cell-level: BWP-Config");
+  INFO("TC-8: Control – Style 2 Cell-level: O-BWP");
   for (size_t i = 0; i < nodes.len; i++) {
     char* json = make_json(
-      CCC_RAN_STRUCT_NAME_BWP_CONFIG,
+      CCC_RAN_STRUCT_NAME_O_BWP,
       "{"
-        "\"bwp_context\":0,"
-        "\"is_initial_bwp\":true,"
-        "\"sub_carrier_spacing\":1,"
-        "\"cyclic_prefix\":0,"
-        "\"start_rb\":0,"
-        "\"number_of_rbs\":106"
+        "\"bwpContext\":0,"
+        "\"isInitialBwp\":true,"
+        "\"subCarrierSpacing\":1,"
+        "\"cyclicPrefix\":0,"
+        "\"startRB\":0,"
+        "\"numberOfRBs\":106"
       "}"
     );
 
     bool ok = send_ccc_ctrl(&nodes.n[i], CCC_CTRL_SERVICE_STYLE_TYPE_2, json);
     free(json);
 
-    if (ok) PASS("TC-8 node %zu: BWP-Config control sent (SCS 30kHz, 106 RBs)", i);
-    else    FAIL("TC-8 node %zu: BWP-Config control FAILED", i);
+    if (ok) PASS("TC-8 node %zu: O-BWP control sent (SCS 30kHz, 106 RBs)", i);
+    else    FAIL("TC-8 node %zu: O-BWP control FAILED", i);
   }
   sleep(1);
 
   // ===========================================================================
-  // TC-9: Control – Style 2 / Cell-level: Cell-DTX-DRX-Config
+  // TC-9: Control – Style 2 / Cell-level: O-CellDTXDRXConfig
   // ===========================================================================
   SEP();
-  INFO("TC-9: Control – Style 2 Cell-level: Cell-DTX-DRX-Config");
+  INFO("TC-9: Control – Style 2 Cell-level: O-CellDTXDRXConfig");
   for (size_t i = 0; i < nodes.len; i++) {
     char* json = make_json(
-      CCC_RAN_STRUCT_NAME_CELL_DTXDRX_CONFIG,
+      CCC_RAN_STRUCT_NAME_O_CELL_DTXDRX_CONFIG,
       "{"
-        "\"on_duration_timer\":10,"
-        "\"cycle_start_offset\":0,"
-        "\"slot_offset\":0,"
-        "\"config_type\":0,"
-        "\"activation_status\":1,"
-        "\"l1_activation\":true"
+        "\"onDurationTimer\":10,"
+        "\"cycleStartOffset\":0,"
+        "\"slotOffset\":0,"
+        "\"configType\":0,"
+        "\"activationStatus\":1,"
+        "\"l1Activation\":true"
       "}"
     );
 
     bool ok = send_ccc_ctrl(&nodes.n[i], CCC_CTRL_SERVICE_STYLE_TYPE_2, json);
     free(json);
 
-    if (ok) PASS("TC-9 node %zu: Cell-DTX-DRX-Config control sent", i);
-    else    FAIL("TC-9 node %zu: Cell-DTX-DRX-Config control FAILED", i);
+    if (ok) PASS("TC-9 node %zu: O-CellDTXDRXConfig control sent", i);
+    else    FAIL("TC-9 node %zu: O-CellDTXDRXConfig control FAILED", i);
   }
   sleep(1);
 
