@@ -64,7 +64,7 @@ void init_kpm_meas_unit_hash_table(void)
 {
   FILE *fp = fopen(KPM_MEAS_LIST, "r");
   if (!fp) {
-    printf("Cannot open the file \"%s\".\n", KPM_MEAS_LIST);
+   // printf("Cannot open the file \"%s\".\n", KPM_MEAS_LIST);
     perror("Error");
     return;
   }
