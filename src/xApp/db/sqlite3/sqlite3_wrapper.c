@@ -1661,11 +1661,6 @@ void write_db_sqlite3(sqlite3* db, global_e2_node_id_t const* id, sm_ag_if_rd_t 
     write_kpm_stats(db, id, &ag_rd->ind.kpm.ind);
   } else if(rd->type ==  RAN_CTRL_STATS_V1_03){
     write_rc_stats(db, id, &rd->rc.ind);
-    rc_acc++;
-    if(rc_acc > 2048){
-      printf("RAN Control sqlite not implemented\n");
-      rc_acc = 0;
-    }
   } else if (rd->type == SRS_STATS_V0){
     write_srs_stats(db, id, &rd->srs);
   } else {

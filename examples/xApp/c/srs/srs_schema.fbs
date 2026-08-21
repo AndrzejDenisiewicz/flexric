@@ -1,0 +1,13 @@
+namespace SRSPlots;
+
+table SRSData {
+  frame:ushort;
+  slot:ushort;
+  ue_id:uint;
+  rnti:ushort;
+  num_antennas:ushort;
+  num_prgs:uint;
+  srs_cfr_amp2:[uint];
+}
+
+root_type SRSData;

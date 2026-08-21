@@ -34,6 +34,7 @@
 #include "srs_fapi/nfapi_srs_data.h"
 #include "srs_fapi/srs_fapi_p7.h"
 
+#define SRS_LOG
 typedef uint32_t frame_t;
 typedef uint32_t slot_t;
 

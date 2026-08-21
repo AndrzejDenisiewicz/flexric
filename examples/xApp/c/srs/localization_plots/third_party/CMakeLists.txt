@@ -35,7 +35,7 @@ add_library(ImPlot
     "${implot_SOURCE_DIR}/implot.cpp"
     "${implot_SOURCE_DIR}/implot_items.cpp"
     "${implot_SOURCE_DIR}/implot_demo.cpp")
- 
+
 add_library(ImPlot::ImPlot ALIAS ImPlot)
 target_include_directories(ImPlot PUBLIC "${implot_SOURCE_DIR}" "${imgui_SOURCE_DIR}")
 target_link_libraries(ImPlot PUBLIC ImGui::ImGui)
