@@ -93,7 +93,6 @@ if(E2AP_ENCODING STREQUAL "ASN")
             )
   target_link_libraries(e42_xapp
                      PUBLIC
-                     asn1_nr_rrc
                      sm_common_dec_asn_obj_rc
                      3gpp_derived_ie_dec_asn_obj_rc
                     )
