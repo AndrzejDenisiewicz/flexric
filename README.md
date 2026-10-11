@@ -337,7 +337,7 @@ Additionally, all the data received in the xApp is also written to `DB_DIR/DB_NA
 #### 4.1.1 Grafana
 [The official Grafana installation instructions](https://grafana.com/docs/grafana/latest/setup-grafana/installation/).
 
-At the moment, we support real time monitoring for E2SM-KPM and E2SM-CCC Service Model in Grafana(CCC indications are stored in the `CCC_IND` SQLite table). After the Grafana installation, please follow the additional steps:
+At the moment, we support real time monitoring for E2SM-KPM, E2SM-RC, and E2SM-CCC Service Model in Grafana(CCC indications are stored in the `CCC_IND` SQLite table). After the Grafana installation, please follow the additional steps:
 ```bash
 sudo grafana-cli plugins install frser-sqlite-datasource
 sudo vi /etc/grafana/grafana.ini # set the min_refresh_interval to 1s
