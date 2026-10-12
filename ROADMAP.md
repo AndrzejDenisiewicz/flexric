@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+
 # Duranta-FlexRIC Roadmap
 
 ## Q2 2026
