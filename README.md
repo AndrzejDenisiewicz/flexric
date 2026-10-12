@@ -1,5 +1,9 @@
 <!-- SPDX-License-Identifier: CC-BY-4.0 -->
 
+<h1 align="center">
+    <a href="https://lfnetworking.org/projects/duranta/"><img src="https://raw.githubusercontent.com/duranta-project/governance/main/logos/Duranta-Logo-Color.png" alt="Duranta OAI" width="550"></a>
+</h1>
+
 # FlexRIC Documentation
 
 [![License](https://img.shields.io/badge/License-CSSL%20v1.0-blue)](https://github.com/duranta-project/flexric/blob/dev/LICENSE)
