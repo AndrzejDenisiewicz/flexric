@@ -5,6 +5,7 @@
 </h1>
 
 <p align="center">
+    <a href="https://github.com/duranta-project/flexric/releases/tag/v3.0.0"><img src="https://img.shields.io/badge/release-v3.0.0-rebeccapurple?style=flat-square&logo=github" alt="Release v3.0.0"></a>
     <a href="https://github.com/duranta-project/flexric/blob/dev/LICENSE"><img src="https://img.shields.io/badge/License-CSSL%20v1.0-rebeccapurple" alt="License"></a>
 </p>
 
