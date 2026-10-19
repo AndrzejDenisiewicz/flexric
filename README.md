@@ -4,12 +4,18 @@
     <a href="https://lfnetworking.org/projects/duranta/"><img src="https://raw.githubusercontent.com/duranta-project/governance/main/logos/Duranta-Logo-Color.png" alt="Duranta OAI" width="550"></a>
 </h1>
 
-# FlexRIC Documentation
+<p align="center">
+    <a href="https://github.com/duranta-project/flexric/blob/dev/LICENSE"><img src="https://img.shields.io/badge/License-CSSL%20v1.0-rebeccapurple" alt="License"></a>
+</p>
 
-[![License](https://img.shields.io/badge/License-CSSL%20v1.0-blue)](https://github.com/duranta-project/flexric/blob/dev/LICENSE)
-[![Ubuntu 22.04](https://img.shields.io/badge/Ubuntu-22.04-E95420?logo=ubuntu&logoColor=white)](https://releases.ubuntu.com/22.04/)
-[![CentOS Stream 10](https://img.shields.io/badge/CentOS%20Stream-10-262577?logo=centos&logoColor=white)](https://www.centos.org/stream/)
-[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-oai--flexric-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/oaisoftwarealliance/oai-flexric/tags)
+<p align="center">
+    <a href="https://releases.ubuntu.com/22.04/"><img src="https://img.shields.io/badge/Ubuntu-22.04-E95420?logo=ubuntu&logoColor=white" alt="Supported OS Ubuntu 22"></a>
+    <a href="https://www.centos.org/centos-stream/"><img src="https://img.shields.io/badge/CentOS%20Stream-10-262577?logo=centos&logoColor=white" alt="Supported CentOS Stream 10"></a>
+    <a href="https://hub.docker.com/r/oaisoftwarealliance/oai-flexric/tags"><img src="https://img.shields.io/badge/Docker%20Hub-oai--flexric-2496ED?logo=docker&logoColor=white" alt="FlexRIC image tags"></a>
+</p>
+
+
+# FlexRIC Documentation
 
 This repository contains [O-RAN Alliance](https://www.o-ran.org/) compliant E2 Node Agent emulators, a nearRT-RIC, and xApps written in C/C++ and Python.
 
