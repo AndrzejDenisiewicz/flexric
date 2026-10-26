@@ -26,6 +26,9 @@ pthread_mutex_t mtx;
 uint32_t old_ports_off_count = 0;
 uint32_t old_ports_on_count = 0;
 static e2_node_arr_xapp_t* g_nodes = NULL;  // Global reference to E2 nodes
+static bool g_native_ccc = false;
+static bool g_dry_run = true;
+static bool g_control_sent = false;
 
 // Forward declarations
 char* gen_json_string_O_NESPolicy(const char* antenna_mask, const char* old_antenna_mask,
@@ -172,6 +175,16 @@ char* GetAntennaMask(uint32_t onPorts)
 static
 void send_antenna_control_message(const char* antenna_mask)
 {
+  if (!g_native_ccc || g_dry_run) {
+    printf("[xApp]: CCC control suppressed (transport=%s, dry_run=%s)\n",
+           g_native_ccc ? "native-ccc" : "kpm-first",
+           g_dry_run ? "1" : "0");
+    return;
+  }
+  if (g_control_sent) {
+    printf("[xApp]: CCC control already sent; suppressing duplicate request\n");
+    return;
+  }
   if (g_nodes == NULL || g_nodes->len == 0) {
     printf("WARNING: Cannot send control message - E2 nodes not available\n");
     return;
@@ -184,7 +197,7 @@ void send_antenna_control_message(const char* antenna_mask)
     
     // Find CCC RAN function
     size_t const idx = find_sm_idx(n->rf, n->len_rf, eq_sm, CCC_ran_function);
-    if (n->rf[idx].defn.type != CCC_RAN_FUNC_DEF_E) {
+    if (idx == n->len_rf || n->rf[idx].defn.type != CCC_RAN_FUNC_DEF_E) {
       printf("WARNING: CCC RAN function not found for node %zu\n", i);
       continue;
     }
@@ -201,6 +214,7 @@ void send_antenna_control_message(const char* antenna_mask)
     printf("[xApp]: Sending RF Reconfiguration Control message - antenna mask: %s (old: %s)\n", antenna_mask, old_antenna_mask);
     
     control_sm_xapp_api(&n->id, SM_CCC_ID, &ccc_ctrl_req);
+    g_control_sent = true;
     
     free_ccc_ctrl_req_data(&ccc_ctrl_req);
   }
@@ -476,8 +490,7 @@ size_t find_sm_idx(sm_ran_function_t* rf, size_t sz, bool (*f)(sm_ran_function_t
       return i;
   }
 
-  assert(0 != 0 && "SM ID could not be found in the RAN Function List");
-  return 0;
+  return sz;
 }
 
 static
@@ -598,6 +611,17 @@ int main(int argc, char* argv[])
 {
   fr_args_t args = init_fr_args(argc, argv);
 
+  const char* transport = getenv("RF_XAPP_TRANSPORT");
+  const char* dry_run = getenv("RF_XAPP_DRY_RUN");
+  g_native_ccc = transport != NULL && strcmp(transport, "native-ccc") == 0;
+  g_dry_run = dry_run == NULL || strcmp(dry_run, "0") != 0;
+  printf("[xApp]: RF transport=%s, dry_run=%s\n",
+         g_native_ccc ? "native-ccc" : (transport != NULL ? transport : "kpm-first"),
+         g_dry_run ? "1" : "0");
+  if (g_native_ccc && g_dry_run) {
+    printf("[xApp]: native CCC selected but dry-run is enabled; no controls will be sent\n");
+  }
+
   // Init the xApp
   init_xapp_api(&args);
   sleep(4);
@@ -606,6 +630,10 @@ int main(int argc, char* argv[])
   assert(nodes.len > 0);
   g_nodes = &nodes;
   printf("[KPM CCC]: Connected E2 nodes = %d\n", nodes.len);
+  if (g_native_ccc && !g_dry_run) {
+    printf("[xApp]: Sending native CCC smoke control after E2 setup\n");
+    send_antenna_control_message("1100");
+  }
   sm_ans_xapp_t* hndl = calloc(nodes.len, sizeof(sm_ans_xapp_t));
   assert(hndl != NULL);
 
@@ -618,7 +646,10 @@ int main(int argc, char* argv[])
     e2_node_connected_xapp_t* n = &nodes.n[i];
 
     size_t const idx = find_sm_idx(n->rf, n->len_rf, eq_sm, KPM_ran_function);
-    assert(n->rf[idx].defn.type == KPM_RAN_FUNC_DEF_E && "KPM is not the received RAN Function");
+    if (idx == n->len_rf || n->rf[idx].defn.type != KPM_RAN_FUNC_DEF_E) {
+      printf("WARNING: KPM RAN function not found for node %zu\n", i);
+      continue;
+    }
     // if REPORT Service is supported by E2 node, send SUBSCRIPTION
     // e.g. OAI CU-CP
     if (n->rf[idx].defn.kpm.ric_report_style_list != NULL) {
@@ -635,7 +666,12 @@ int main(int argc, char* argv[])
   // END KPM
   ////////////
 
-  sleep(1000);
+  sleep(5);
+
+  if (g_native_ccc && !g_dry_run) {
+    printf("[xApp]: Sending deterministic native CCC smoke control\n");
+    send_antenna_control_message("1100");
+  }
 
   // ////////////
   // // START CCC
